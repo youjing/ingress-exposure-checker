@@ -34,10 +34,51 @@ class TestCsvInput:
         p = _write(tmp_path, "t.csv", "url\nhttp://a.com\n")
         assert parse_targets(p)[0] == Target(url="http://a.com")
 
-class TestSchemeNormalization:
-    def test_adds_http_scheme_when_missing(self, tmp_path):
-        p = _write(tmp_path, "t.txt", "example.com\n")
-        assert parse_targets(p)[0].url == "http://example.com"
-    def test_preserves_https(self, tmp_path):
-        p = _write(tmp_path, "t.txt", "https://secure.com\n")
-        assert parse_targets(p)[0].url == "https://secure.com"
+class TestIngressTableInput:
+    INGRESS_TABLE = (
+        "NAMESPACE                 NAME                                     HOSTS                          PATHS                                                        PORTS\n"
+        "cog-demo                  nacos-test                               chart-example.local            /nacos                                                       80\n"
+        "cogiot-admin              audit-log-backend-ingress                test.cogiot.net                /api/v1/audit                                                80, 443\n"
+        "cogiot-admin              platform-ui                              admin.platform.cogiot          /                                                            80\n"
+        "cogiot-monitor            grafana-ingress                          test.cogiot.net                /grafana(/|$)(.*)                                            80, 443\n"
+    )
+
+    def test_ingress_table_parses_targets(self, tmp_path):
+        p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
+        targets = parse_targets(p)
+        assert len(targets) == 4
+
+    def test_ingress_table_extracts_namespace(self, tmp_path):
+        p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
+        targets = parse_targets(p)
+        assert targets[0].namespace == "cog-demo"
+        assert targets[1].namespace == "cogiot-admin"
+
+    def test_ingress_table_https_on_443(self, tmp_path):
+        p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
+        targets = parse_targets(p)
+        assert targets[1].url.startswith("https://")  # has 443
+        assert targets[1].url == "https://test.cogiot.net/api/v1/audit"
+
+    def test_ingress_table_http_without_443(self, tmp_path):
+        p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
+        targets = parse_targets(p)
+        assert targets[0].url.startswith("http://")  # only 80
+        assert targets[0].url == "http://chart-example.local/nacos"
+
+    def test_ingress_table_empty_path_becomes_root(self, tmp_path):
+        p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
+        targets = parse_targets(p)
+        assert targets[2].url == "http://admin.platform.cogiot/"
+
+    def test_ingress_table_preserves_name(self, tmp_path):
+        p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
+        targets = parse_targets(p)
+        assert targets[0].name == "nacos-test"
+        assert targets[3].name == "grafana-ingress"
+
+    def test_ingress_table_not_matched_as_plain_txt(self, tmp_path):
+        # A plain URL file should still parse as TXT, not ingress table
+        p = _write(tmp_path, "t.txt", "http://a.com\nhttp://b.com\n")
+        targets = parse_targets(p)
+        assert len(targets) == 2
