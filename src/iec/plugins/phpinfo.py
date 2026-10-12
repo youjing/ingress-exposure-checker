@@ -19,6 +19,17 @@ class PhpInfoPlugin(MiddlewarePlugin):
         return None
 
     async def check_auth(self, ctx: ProbeContext):
+        from iec.models import TestDetail
         return AuthCheckResult(
             status=AuthStatus.EXPOSED_NO_AUTH,
-            evidence=["phpinfo page is always an exposure"])
+            evidence=["phpinfo page is always an exposure"],
+            details=[TestDetail(
+                name="phpinfo 暴露检测",
+                description="phpinfo 页面会泄露 PHP 版本、扩展、环境变量、路径等敏感配置",
+                target=ctx.target.url,
+                request=f"GET {ctx.target.url}",
+                response="页面包含 phpinfo 特征",
+                result="phpinfo 页面对公网暴露(存在漏洞!)",
+                vulnerable=True,
+            )],
+        )
