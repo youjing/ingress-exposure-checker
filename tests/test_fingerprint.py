@@ -12,18 +12,20 @@ class FakeCtx(ProbeContext):
         self.favicon_hash = favicon
 
 
-def test_no_match_returns_none():
+@pytest.mark.asyncio
+async def test_no_match_returns_none():
     from iec.plugins.base import PLUGINS
     snapshot = list(PLUGINS)
     PLUGINS.clear()
     try:
         ctx = FakeCtx(body="nothing useful")
-        assert fingerprint(ctx) is None
+        assert await fingerprint(ctx) is None
     finally:
         PLUGINS[:] = snapshot
 
 
-def test_high_confidence_on_two_signals():
+@pytest.mark.asyncio
+async def test_high_confidence_on_two_signals():
     from iec.plugins.base import PLUGINS, MiddlewarePlugin
     from iec.models import FingerprintResult, AuthCheckResult, AuthStatus
 
@@ -45,13 +47,14 @@ def test_high_confidence_on_two_signals():
     PLUGINS.append(TwoSignal())
     try:
         ctx = FakeCtx(body="welcome to grafana", headers={"x-some-header": "grafana"})
-        r = fingerprint(ctx)
+        r = await fingerprint(ctx)
         assert r is not None and r.confidence == HIGH
     finally:
         PLUGINS[:] = snapshot
 
 
-def test_low_confidence_reports_unknown():
+@pytest.mark.asyncio
+async def test_low_confidence_reports_unknown():
     from iec.plugins.base import PLUGINS, MiddlewarePlugin
     from iec.models import FingerprintResult, AuthCheckResult, AuthStatus
 
@@ -68,7 +71,7 @@ def test_low_confidence_reports_unknown():
     PLUGINS.append(OneWeak())
     try:
         ctx = FakeCtx(body="mentioning grafana once")
-        r = fingerprint(ctx)
+        r = await fingerprint(ctx)
         assert r is not None and r.middleware == "oneweak" and r.confidence == LOW
     finally:
         PLUGINS[:] = snapshot
