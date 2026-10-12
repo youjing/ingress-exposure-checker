@@ -61,7 +61,11 @@ CSS = (
     "}\n"
     ".footer{color:"
     "#9ca3af"
-    ";font-size:12px;margin-top:24px}"
+    ";font-size:12px;margin-top:24px}\n"
+    "a{color:"
+    "#2563eb"
+    ";text-decoration:none}\n"
+    "a:hover{text-decoration:underline}"
 )
 
 # noqa: E501 - template lines are long by nature
@@ -84,7 +88,7 @@ HTML_TEMPLATE = Template("""<!doctype html>
 <tr>
 <td><span class="sev-{{ r.severity.value }}">{{ r.severity_zh }}</span></td>
 <td>{{ r.target.namespace or '-' }}</td>
-<td><code>{{ r.target.url }}</code></td>
+<td><a href="{{ r.target.url }}" target="_blank" rel="noopener noreferrer">{{ r.target.url }}</a></td>
 <td>{{ r.middleware or '-' }}</td>
 <td>{{ r.status_zh }}</td>
 <td>{{ r.evidence[:3] | join('; ') }}</td>
@@ -98,7 +102,8 @@ HTML_TEMPLATE = Template("""<!doctype html>
 <h3>{{ group_name }}({{ group | length }} 项)</h3>
 {% for r in group %}
 <div class="target-card">
-<h4>[{{ r.target.namespace or '-' }} / {{ r.target.name or '-' }}] <code>{{ r.target.url }}</code></h4>
+<h4>[{{ r.target.namespace or '-' }} / {{ r.target.name or '-' }}]
+  <a href="{{ r.target.url }}" target="_blank" rel="noopener noreferrer">{{ r.target.url }}</a></h4>
 <p class="meta"><b>中间件:</b>{{ r.middleware or '未识别' }} &nbsp;&nbsp;
    <b>判定:</b><span class="sev-{{ r.severity.value }}">{{ r.status_zh }}</span></p>
 <p class="meta"><b>证据:</b>{{ r.evidence | join('; ') or '-' }}</p>
