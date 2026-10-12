@@ -36,13 +36,15 @@ class HttpClient:
     async def get(self, url: str, **kwargs) -> httpx.Response:
         host = httpx.URL(url).host
         async with self._sem, self._host_sem(host):
-            assert self._client
+            if self._client is None:
+                raise RuntimeError("HttpClient must be used as an async context manager")
             return await self._client.get(url, **kwargs)
 
     async def post(self, url: str, **kwargs) -> httpx.Response:
         host = httpx.URL(url).host
         async with self._sem, self._host_sem(host):
-            assert self._client
+            if self._client is None:
+                raise RuntimeError("HttpClient must be used as an async context manager")
             return await self._client.post(url, **kwargs)
 
     async def safe_get(self, url: str) -> tuple[bool, str]:

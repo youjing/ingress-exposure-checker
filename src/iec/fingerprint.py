@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from iec.models import FingerprintResult
-from iec.plugins.base import PLUGINS
+from iec.plugins import PLUGINS
 from iec.probe import ProbeContext
 
 HIGH = "high"

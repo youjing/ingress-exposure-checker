@@ -1,4 +1,4 @@
-from iec.models import ScanResult, AuthStatus
+from iec.models import ScanResult, AuthStatus, SEVERITY_RANK
 from jinja2 import Template
 
 CSS = (
@@ -41,7 +41,7 @@ HTML += '<div class="card"><div class="n h">{{ counts.default_creds }}</div><div
 HTML += '<div class="card"><div class="n o">{{ counts.protected }}</div><div>Protected</div></div>'
 HTML += '</div>'
 HTML += '<table><tr><th>Severity</th><th>Endpoint</th><th>Middleware</th><th>Status</th><th>Evidence</th></tr>'
-HTML += '{% for r in results | sort(attribute="severity.value") %}'
+HTML += '{% for r in results %}'
 HTML += '<tr><td><span class="{{ r.severity.value }}">{{ r.severity.value }}</span></td>'
 HTML += '<td><code>{{ r.target.url }}</code></td>'
 HTML += '<td>{{ r.middleware or "-" }}</td>'
@@ -56,7 +56,7 @@ def render_html(results: list[ScanResult]) -> str:
     from collections import Counter
     counts = Counter(r.auth_status for r in results)
     return HTML_TEMPLATE.render(
-        results=results,
+        results=sorted(results, key=lambda r: SEVERITY_RANK[r.severity]),
         counts={
             "no_auth": counts.get(AuthStatus.EXPOSED_NO_AUTH, 0),
             "default_creds": counts.get(AuthStatus.EXPOSED_DEFAULT_CREDS, 0),

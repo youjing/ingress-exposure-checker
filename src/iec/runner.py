@@ -6,7 +6,7 @@ from typing import Callable
 from iec.fingerprint import LOW, fingerprint
 from iec.http import HttpClient
 from iec.models import AuthStatus, ScanResult, Target
-from iec.plugins.base import get_plugin
+from iec.plugins import get_plugin
 from iec.probe import build_context
 
 

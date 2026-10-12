@@ -24,6 +24,7 @@ class GrafanaPlugin(MiddlewarePlugin):
 @pytest.mark.asyncio
 async def test_scan_target_matches_and_checks():
     snapshot = list(PLUGINS)
+    PLUGINS.clear()
     PLUGINS.append(GrafanaPlugin())
     try:
         with respx.mock:
@@ -56,6 +57,7 @@ async def test_scan_target_unreachable():
 @pytest.mark.asyncio
 async def test_scan_all_runs_multiple():
     snapshot = list(PLUGINS)
+    PLUGINS.clear()
     PLUGINS.append(GrafanaPlugin())
     try:
         with respx.mock:
