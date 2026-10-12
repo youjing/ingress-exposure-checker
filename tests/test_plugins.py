@@ -1,11 +1,24 @@
 import pytest
 
 from iec.models import Target
+from iec.plugins.base import PLUGINS
+
+# Capture baseline BEFORE importing the concrete plugin modules, whose
+# module-level @register decorators would otherwise mutate PLUGINS for the
+# rest of the session. The autouse fixture restores this after each test.
+_PLUGINS_BASELINE = list(PLUGINS)
+
 from iec.plugins.elasticsearch import ElasticsearchPlugin
 from iec.plugins.grafana import GrafanaPlugin
 from iec.plugins.nacos import NacosPlugin
 from iec.plugins.rabbitmq import RabbitMQPlugin
 from iec.probe import ProbeContext
+
+
+@pytest.fixture(autouse=True)
+def _restore_plugins():
+    yield
+    PLUGINS[:] = _PLUGINS_BASELINE
 
 
 class C(ProbeContext):
