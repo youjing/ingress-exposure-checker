@@ -45,6 +45,6 @@ iec targets.txt --authorized --output-html report.html --output-md report.md
 
 Grafana, RabbitMQ Management, Nacos, Elasticsearch, Prometheus, Alertmanager,
 Logstash, Harbor, Nexus, MinIO, phpMyAdmin, Tomcat Manager, Mongo Express,
-Druid, Kafka UI, phpinfo, Kibana, Jenkins, JFrog Artifactory。
+Druid, Kafka UI, phpinfo, Kibana, Jenkins, JFrog Artifactory, ChirpStack (v3/v4)。
 
 新增中间件：在 `src/iec/plugins/` 添加一个 `MiddlewarePlugin` 子类并用 `@register` 装饰即可。

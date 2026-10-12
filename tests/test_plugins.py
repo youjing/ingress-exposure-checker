@@ -64,3 +64,18 @@ async def test_elasticsearch_fingerprint():
     ctx = C(body='{"cluster_name":"test","tagline":"You Know, for Search"}')
     r = await ElasticsearchPlugin().fingerprint(ctx)
     assert r is not None and r.middleware == "elasticsearch"
+
+
+@pytest.mark.asyncio
+async def test_chirpstack_fingerprint():
+    from iec.plugins.chirpstack import ChirpStackPlugin
+    # v3 title
+    r = await ChirpStackPlugin().fingerprint(
+        C(body="<title>ChirpStack Application Server</title>"))
+    assert r is not None and r.middleware == "chirpstack"
+    # v4 title
+    r = await ChirpStackPlugin().fingerprint(C(body="<title>ChirpStack</title>"))
+    assert r is not None and r.middleware == "chirpstack"
+    # non-match
+    r = await ChirpStackPlugin().fingerprint(C(body="<title>Other</title>"))
+    assert r is None
