@@ -10,7 +10,7 @@ from .models import Target
 @dataclass
 class ProbeContext:
     target: Target
-    client: HttpClient
+    client: HttpClient | None = None
     home_body: str = ""
     home_headers: dict[str, str] = field(default_factory=dict)
     favicon_hash: int | None = None
