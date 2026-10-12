@@ -32,6 +32,13 @@ STATUS_SEVERITY: dict[AuthStatus, Severity] = {
     AuthStatus.ERROR: Severity.INFO,
 }
 
+SEVERITY_RANK: dict[Severity, int] = {
+    Severity.CRITICAL: 0,
+    Severity.HIGH: 1,
+    Severity.INFO: 2,
+    Severity.OK: 3,
+}
+
 
 @dataclass
 class Target:

@@ -1,4 +1,4 @@
-from iec.models import ScanResult, AuthStatus, Severity
+from iec.models import ScanResult, AuthStatus, Severity, SEVERITY_RANK
 
 COLORS = {
     Severity.CRITICAL: "bold red",
@@ -25,7 +25,7 @@ def render_terminal_summary(results: list[ScanResult]) -> None:
     table.add_column("Middleware")
     table.add_column("Status")
     table.add_column("Evidence")
-    for r in sorted(results, key=lambda x: x.severity.value):
+    for r in sorted(results, key=lambda x: SEVERITY_RANK[x.severity]):
         table.add_row(
             f"[{COLORS[r.severity]}]{r.severity.value}[/{COLORS[r.severity]}]",
             r.target.url,

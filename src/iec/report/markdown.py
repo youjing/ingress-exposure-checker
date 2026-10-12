@@ -1,4 +1,4 @@
-from iec.models import ScanResult, AuthStatus
+from iec.models import ScanResult, AuthStatus, SEVERITY_RANK
 
 
 def render_markdown(results: list[ScanResult]) -> str:
@@ -15,7 +15,7 @@ def render_markdown(results: list[ScanResult]) -> str:
         "| Severity | Endpoint | Middleware | Status | Evidence |",
         "|---|---|---|---|---|",
     ]
-    for r in sorted(results, key=lambda x: x.severity.value):
+    for r in sorted(results, key=lambda x: SEVERITY_RANK[x.severity]):
         evidence = "; ".join(r.evidence[:3]).replace("|", "/") or "-"
         lines.append(f"| {r.severity.value} | `{r.target.url}` | {r.middleware or '-'} | {r.auth_status.value} | {evidence} |")
     return "\n".join(lines)
