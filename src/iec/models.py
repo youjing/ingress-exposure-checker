@@ -104,6 +104,7 @@ class ScanResult:
     evidence: list[str] = field(default_factory=list)
     details: list[TestDetail] = field(default_factory=list)
     error: str | None = None
+    reachable: bool = False   # 目标是否可达(从扫描器视角即公网可达)
 
     @property
     def severity(self) -> Severity:
@@ -116,3 +117,7 @@ class ScanResult:
     @property
     def severity_zh(self) -> str:
         return SEVERITY_ZH.get(self.severity, self.severity.value)
+
+    @property
+    def reachable_zh(self) -> str:
+        return "✅ 可达" if self.reachable else "❌ 不可达"

@@ -28,6 +28,7 @@ async def scan_target(
                 result.auth_status = AuthStatus.UNREACHABLE
                 result.error = ctx.home_headers["_error"]
                 result.evidence.append("target unreachable during probe")
+                result.reachable = False
                 result.details.append(TestDetail(
                     name="连通性测试",
                     description="请求目标首页,检查服务是否可达",
@@ -44,6 +45,7 @@ async def scan_target(
                     on_found(result)
                 return result
             fp = await fingerprint(ctx)
+            result.reachable = True   # 首页拿到 HTTP 响应 = 公网可达
             if fp is None:
                 result.auth_status = AuthStatus.UNKNOWN
                 result.evidence.append("no fingerprint match")
