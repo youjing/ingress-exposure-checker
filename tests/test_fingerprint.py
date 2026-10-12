@@ -68,6 +68,7 @@ async def test_low_confidence_reports_unknown():
             return AuthCheckResult(status=AuthStatus.UNKNOWN, evidence=[])
 
     snapshot = list(PLUGINS)
+    PLUGINS.clear()
     PLUGINS.append(OneWeak())
     try:
         ctx = FakeCtx(body="mentioning grafana once")
