@@ -12,10 +12,11 @@ def render_markdown(results: list[ScanResult]) -> str:
         f"- **CRITICAL (EXPOSED_NO_AUTH):** {counts.get(AuthStatus.EXPOSED_NO_AUTH, 0)}",
         f"- **HIGH (EXPOSED_DEFAULT_CREDS):** {counts.get(AuthStatus.EXPOSED_DEFAULT_CREDS, 0)}",
         "",
-        "| Severity | Endpoint | Middleware | Status | Evidence |",
-        "|---|---|---|---|---|",
+        "| Severity | Namespace | Endpoint | Middleware | Status | Evidence |",
+        "|---|---|---|---|---|---|",
     ]
     for r in sorted(results, key=lambda x: SEVERITY_RANK[x.severity]):
         evidence = "; ".join(r.evidence[:3]).replace("|", "/") or "-"
-        lines.append(f"| {r.severity.value} | `{r.target.url}` | {r.middleware or '-'} | {r.auth_status.value} | {evidence} |")
+        ns = (r.target.namespace or "-").replace("|", "/")
+        lines.append(f"| {r.severity.value} | {ns} | `{r.target.url}` | {r.middleware or '-'} | {r.auth_status.value} | {evidence} |")
     return "\n".join(lines)

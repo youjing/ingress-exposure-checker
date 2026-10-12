@@ -44,6 +44,7 @@ SEVERITY_RANK: dict[Severity, int] = {
 class Target:
     url: str
     name: str = ""
+    namespace: str = ""
 
 
 @dataclass

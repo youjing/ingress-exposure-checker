@@ -21,6 +21,7 @@ def render_terminal_summary(results: list[ScanResult]) -> None:
 
     table = Table(title="Findings (sorted by severity)")
     table.add_column("Severity")
+    table.add_column("Namespace")
     table.add_column("Endpoint")
     table.add_column("Middleware")
     table.add_column("Status")
@@ -28,6 +29,7 @@ def render_terminal_summary(results: list[ScanResult]) -> None:
     for r in sorted(results, key=lambda x: SEVERITY_RANK[x.severity]):
         table.add_row(
             f"[{COLORS[r.severity]}]{r.severity.value}[/{COLORS[r.severity]}]",
+            r.target.namespace or "-",
             r.target.url,
             r.middleware or "-",
             r.auth_status.value,
