@@ -32,7 +32,7 @@ class GrafanaPlugin(MiddlewarePlugin):
         return None
 
     async def check_auth(self, ctx: ProbeContext):
-        from iec.models import AuthCheckResult, AuthStatus
+        from iec.models import AuthCheckResult, AuthStatus, TestDetail
 
         body = (ctx.home_body or "").lower()
         # Grafana behind SSO (Keycloak/OAuth): login is delegated, no local default creds
@@ -42,6 +42,14 @@ class GrafanaPlugin(MiddlewarePlugin):
             return AuthCheckResult(
                 status=AuthStatus.PROTECTED,
                 evidence=["grafana auth delegated to SSO (Keycloak/OAuth); no local default creds to test"],
+                details=[TestDetail(
+                    name="SSO 认证检测",
+                    description="检测 Grafana 是否将认证委托给外部 SSO (Keycloak/OAuth)",
+                    target=ctx.target.url,
+                    response="检测到 SSO 登录页面特征 (Keycloak/OpenID Connect)",
+                    result="认证已委托给 SSO，无本地默认凭据可测(已有保护)",
+                    vulnerable=False,
+                )],
             )
 
         login_path = urljoin(ctx.target.url.rstrip("/") + "/", "login")
