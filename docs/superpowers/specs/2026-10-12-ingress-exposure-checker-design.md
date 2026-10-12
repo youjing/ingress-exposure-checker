@@ -69,7 +69,7 @@ ingress_exposure_checker/
 | 组件 | 职责 | 依赖 |
 |---|---|---|
 | cli.py | 参数解析、授权门禁、编排扫描与报告 | 全部 |
-| input.py | 读取 TXT(每行一个 URL)/ CSV(name,url 列),规范化(scheme 补全、去重、仅 http/https) | models |
+| input.py | 读取 TXT(每行一个 URL)/ CSV(必须含表头,至少有 `url` 列,`name` 列可选),规范化(scheme 补全、去重、仅 http/https) | models |
 | http.py | 共享 AsyncClient;全局并发信号量(默认 20)、单主机信号量(默认 2)、超时 10s | — |
 | fingerprint.py | 按规则序匹配:HTTP headers(Server/X-Powered-By/Set-Cookie 名)、HTML 特征(title/正文标记)、favicon mmh3 hash、特征 API 路径响应;输出 MiddlewareType + 置信度 + 证据 | http, plugins |
 | credcheck.py | 三类检测流程:① 表单登录(POST 字段 + 成功判定:重定向/cookie/响应体特征)② Basic Auth ③ API 未授权探测(直接请求敏感端点) | http, plugins |
@@ -150,7 +150,7 @@ ingress_exposure_checker/
 
 - 单目标超时 / 连接失败 → `UNREACHABLE`;其他异常 → `ERROR`;均不中断全局扫描
 - TLS 证书错误:默认**验证**证书;`--insecure-tls` 允许跳过(内部中间件自签名常见)
-- 指纹置信度低于阈值 → `UNKNOWN`,不强行归类
+- 指纹置信度规则(规则制,非机器学习):命中 ≥2 个独立信号(如 header + 响应体),或命中 1 个强信号(特征 API 路径返回预期 JSON)→ HIGH;仅命中 1 个弱信号(单条 HTML 关键字)→ LOW → 归为 `UNKNOWN`,不强行归类
 - 输入校验:仅接受 `http://` / `https://` URL(无 scheme 默认补 `http://`,可配置)
 
 ## 9. 测试策略
