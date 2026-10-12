@@ -28,13 +28,16 @@ def render_terminal_summary(results: list[ScanResult]) -> None:
 
     table = Table(title="扫描结果摘要(按严重级别排序)")
     table.add_column("级别")
+    table.add_column("公网可达")
     table.add_column("命名空间")
     table.add_column("目标")
     table.add_column("中间件")
     table.add_column("判定")
     for r in sorted(results, key=lambda x: SEVERITY_RANK[x.severity]):
+        reach = "[green]✅ 可达[/green]" if r.reachable else "[red]❌ 不可达[/red]"
         table.add_row(
             f"[{COLORS[r.severity]}]{r.severity_zh}[/{COLORS[r.severity]}]",
+            reach,
             r.target.namespace or "-",
             r.target.url,
             r.middleware or "-",

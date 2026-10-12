@@ -83,10 +83,11 @@ HTML_TEMPLATE = Template("""<!doctype html>
 
 <h2>摘要</h2>
 <table>
-<tr><th>严重级别</th><th>命名空间</th><th>目标</th><th>中间件</th><th>状态</th><th>证据</th></tr>
+<tr><th>严重级别</th><th>公网可达</th><th>命名空间</th><th>目标</th><th>中间件</th><th>状态</th><th>证据</th></tr>
 {% for r in results %}
 <tr>
 <td><span class="sev-{{ r.severity.value }}">{{ r.severity_zh }}</span></td>
+<td>{% if r.reachable %}<span class="safe">✅ 可达</span>{% else %}<span class="vuln">❌ 不可达</span>{% endif %}</td>
 <td>{{ r.target.namespace or '-' }}</td>
 <td><a href="{{ r.target.url }}" target="_blank" rel="noopener noreferrer">{{ r.target.url }}</a></td>
 <td>{{ r.middleware or '-' }}</td>
@@ -105,6 +106,7 @@ HTML_TEMPLATE = Template("""<!doctype html>
 <h4>[{{ r.target.namespace or '-' }} / {{ r.target.name or '-' }}]
   <a href="{{ r.target.url }}" target="_blank" rel="noopener noreferrer">{{ r.target.url }}</a></h4>
 <p class="meta"><b>中间件:</b>{{ r.middleware or '未识别' }} &nbsp;&nbsp;
+   <b>公网可达:</b>{% if r.reachable %}<span class="safe">✅ 可达</span>{% else %}<span class="vuln">❌ 不可达</span>{% endif %} &nbsp;&nbsp;
    <b>判定:</b><span class="sev-{{ r.severity.value }}">{{ r.status_zh }}</span></p>
 <p class="meta"><b>证据:</b>{{ r.evidence | join('; ') or '-' }}</p>
 {% if r.error %}<p class="meta"><b>错误:</b>{{ r.error }}</p>{% endif %}
