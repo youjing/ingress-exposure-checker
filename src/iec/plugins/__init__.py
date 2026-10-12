@@ -5,5 +5,5 @@ from . import (
     grafana, rabbitmq, nacos, elasticsearch,
     prometheus, alertmanager, logstash, kibana, jenkins,
     harbor, nexus, minio, phpmyadmin, tomcat, mongo_express, jfrog,
-    druid, kafkaui, phpinfo, unknown,
+    druid, kafkaui, phpinfo, unknown, chirpstack,
 )

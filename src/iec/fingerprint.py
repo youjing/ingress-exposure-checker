@@ -33,6 +33,7 @@ URL_KEYWORDS: dict[str, str] = {
     "mongoexpress": "mongo_express",
     "phpinfo": "phpinfo",
     "rabbitmq": "rabbitmq",
+    "chirpstack": "chirpstack",
 }
 
 
