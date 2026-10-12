@@ -38,15 +38,38 @@ def _is_ingress_table(content: str) -> bool:
     return False
 
 
+def _clean_path(raw_path: str) -> str:
+    """Clean an ingress path (may contain regex like /foo(/|$)(.*)) into a literal URL path.
+
+    Examples:
+        /nacos                -> /nacos
+        /cws/app(/|$)(.*) -> /cws/app
+        /grafana(/|$)(.*)     -> /grafana
+        /                    -> /
+        (empty)              -> /
+    """
+    import re
+
+    path = raw_path.strip()
+    if not path:
+        return "/"
+    # Strip everything from the first '(' (start of regex group) onward
+    path = path.split("(", 1)[0]
+    path = path.rstrip("$")
+    if not path:
+        return "/"
+    if not path.startswith("/"):
+        path = "/" + path
+    return path
+
+
 def _build_url(host: str, paths: str, ports: str) -> str:
     """Build URL from host/paths/ports. Use https if 443 present."""
+    import re
+
     scheme = "https" if "443" in ports else "http"
     host = host.strip()
-    path = paths.strip()
-    if not path:
-        path = "/"
-    elif not path.startswith("/"):
-        path = "/" + path
+    path = _clean_path(paths)
     return f"{scheme}://{host}{path}"
 
 
