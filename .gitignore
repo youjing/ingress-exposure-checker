@@ -11,3 +11,5 @@ htmlcov/
 report.html
 report.md
 .DS_Store
+examples/
+output/
