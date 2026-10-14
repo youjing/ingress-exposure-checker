@@ -34,6 +34,10 @@ URL_KEYWORDS: dict[str, str] = {
     "phpinfo": "phpinfo",
     "rabbitmq": "rabbitmq",
     "chirpstack": "chirpstack",
+    "swagger": "swagger",
+    "api-docs": "swagger",
+    "openapi": "swagger",
+    "actuator": "actuator",
 }
 
 

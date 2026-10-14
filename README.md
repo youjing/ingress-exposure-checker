@@ -45,6 +45,8 @@ iec targets.txt --authorized --output-html report.html --output-md report.md
 
 Grafana, RabbitMQ Management, Nacos, Elasticsearch, Prometheus, Alertmanager,
 Logstash, Harbor, Nexus, MinIO, phpMyAdmin, Tomcat Manager, Mongo Express,
-Druid, Kafka UI, phpinfo, Kibana, Jenkins, JFrog Artifactory, ChirpStack (v3/v4)。
+Druid, Kafka UI, phpinfo, Kibana, Jenkins, JFrog Artifactory, ChirpStack (v3/v4), Swagger/OpenAPI, Spring Boot Actuator。
+
+对指纹无法识别的目标,会自动通用探测常见 API 文档路径(swagger.json / v3/api-docs / actuator 等)。
 
 新增中间件：在 `src/iec/plugins/` 添加一个 `MiddlewarePlugin` 子类并用 `@register` 装饰即可。
