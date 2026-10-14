@@ -47,17 +47,36 @@ async def scan_target(
             fp = await fingerprint(ctx)
             result.reachable = True   # 首页拿到 HTTP 响应 = 公网可达
             if fp is None:
-                result.auth_status = AuthStatus.UNKNOWN
-                result.evidence.append("no fingerprint match")
-                result.details.append(TestDetail(
-                    name="指纹识别",
-                    description="根据页面内容/响应头/favicon 识别部署的中间件类型",
-                    target=target.url,
-                    request=f"GET {target.url}",
-                    response=f"HTTP 页面特征无已知中间件匹配 (body {len(ctx.home_body)} 字节)",
-                    result="无法识别服务类型,跳过针对性漏洞检测",
-                    vulnerable=False,
-                ))
+                # 通用 API 文档暴露探测 (Swagger/OpenAPI, Spring Boot Actuator)
+                from iec.plugins.apidoc import probe_api_docs
+                apidoc_name, apidoc_result = await probe_api_docs(ctx)
+                if apidoc_name is not None:
+                    result.middleware = apidoc_name
+                    result.auth_status = apidoc_result.status
+                    result.evidence.extend(apidoc_result.evidence)
+                    result.details.append(TestDetail(
+                        name="API 文档暴露测试",
+                        description="对未识别的服务通用探测常见 API 文档路径"
+                                    "(swagger.json / v3/api-docs / actuator 等)",
+                        target=target.url,
+                        request="GET 常见 API 文档路径 (无认证)",
+                        response="; ".join(apidoc_result.evidence),
+                        result=f"发现 {apidoc_name} 暴露(存在漏洞!)",
+                        vulnerable=True,
+                    ))
+                    result.details.extend(apidoc_result.details)
+                else:
+                    result.auth_status = AuthStatus.UNKNOWN
+                    result.evidence.append("no fingerprint match")
+                    result.details.append(TestDetail(
+                        name="指纹识别",
+                        description="根据页面内容/响应头/favicon 识别部署的中间件类型",
+                        target=target.url,
+                        request=f"GET {target.url}",
+                        response=f"HTTP 页面特征无已知中间件匹配 (body {len(ctx.home_body)} 字节)",
+                        result="无法识别服务类型,已尝试通用 API 文档探测未发现暴露",
+                        vulnerable=False,
+                    ))
             else:
                 result.middleware = fp.middleware
                 result.middleware_version = fp.version
