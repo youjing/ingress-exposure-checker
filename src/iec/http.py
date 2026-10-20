@@ -9,17 +9,20 @@ USER_AGENT = "ingress-exposure-checker/0.1 (internal audit)"
 
 class HttpClient:
     def __init__(self, concurrency: int = 20, per_host: int = 2,
-                 timeout: float = 10.0, verify_tls: bool = True):
+                 timeout: float = 10.0, verify_tls: bool = True,
+                 trust_env: bool = True):
         self.concurrency = concurrency
         self.per_host = per_host
         self.timeout = timeout
         self.verify_tls = verify_tls
+        self.trust_env = trust_env
         self._client: httpx.AsyncClient | None = None
         self._sem = asyncio.Semaphore(concurrency)
         self._host_sems: dict[str, asyncio.Semaphore] = {}
 
     async def __aenter__(self) -> "HttpClient":
         self._client = httpx.AsyncClient(timeout=self.timeout, verify=self.verify_tls,
+                                         trust_env=self.trust_env,
                                          follow_redirects=True, headers={"User-Agent": USER_AGENT})
         return self
 

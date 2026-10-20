@@ -57,7 +57,7 @@ def test_html_report_is_self_contained(sample_results):
 def test_markdown_report_has_table(sample_results):
     md = render_markdown(sample_results)
     assert "# Ingress 暴露面安全扫描报告" in md
-    assert "| 严重级别 | 公网可达 | 命名空间 | 目标 |" in md
+    assert "| 严重级别 | 可达性 | 命名空间 | 目标 |" in md
     assert "nacos.ex.com" in md
 
 

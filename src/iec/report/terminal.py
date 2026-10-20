@@ -28,7 +28,7 @@ def render_terminal_summary(results: list[ScanResult]) -> None:
 
     table = Table(title="扫描结果摘要(按严重级别排序)")
     table.add_column("级别")
-    table.add_column("公网可达")
+    table.add_column("可达性")
     table.add_column("命名空间")
     table.add_column("目标")
     table.add_column("中间件")

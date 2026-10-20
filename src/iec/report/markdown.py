@@ -25,7 +25,7 @@ def render_markdown(results: list[ScanResult]) -> str:
         "",
         "## 摘要",
         "",
-        "| 严重级别 | 公网可达 | 命名空间 | 目标 | 中间件 | 状态 | 证据 |",
+        "| 严重级别 | 可达性 | 命名空间 | 目标 | 中间件 | 状态 | 证据 |",
         "|---|---|---|---|---|---|---|",
     ]
     for r in sorted(results, key=lambda x: SEVERITY_RANK[x.severity]):
@@ -59,7 +59,7 @@ def render_markdown(results: list[ScanResult]) -> str:
                 f"#### [{ns} / {name}] {r.target.url}",
                 "",
                 f"- **中间件:** {r.middleware or '未识别'}",
-                f"- **公网可达:** {r.reachable_zh}",
+                f"- **可达性:** {r.reachable_zh}",
                 f"- **判定:** {r.status_zh}",
                 f"- **证据:** {'; '.join(r.evidence) or '-'}",
             ]

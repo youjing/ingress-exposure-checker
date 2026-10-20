@@ -13,6 +13,7 @@ class ProbeContext:
     client: HttpClient | None = None
     home_body: str = ""
     home_headers: dict[str, str] = field(default_factory=dict)
+    home_status: int = 0
     favicon_hash: int | None = None
 
     async def fetch_path(self, path: str) -> tuple[int, str, dict[str, str]]:
@@ -39,6 +40,7 @@ async def build_context(client: HttpClient, target: Target) -> ProbeContext:
     ctx = ProbeContext(target=target, client=client)
     try:
         resp = await client.get(target.url)
+        ctx.home_status = resp.status_code
         ctx.home_body = resp.text
         ctx.home_headers = {k.lower(): v for k, v in resp.headers.items()}
     except httpx.HTTPError as e:

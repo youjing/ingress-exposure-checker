@@ -16,12 +16,14 @@ async def scan_target(
     concurrency: int = 20,
     timeout: float = 10.0,
     verify_tls: bool = True,
+    trust_env: bool = True,
     on_found: Callable[[ScanResult], None] | None = None,
 ) -> ScanResult:
     result = ScanResult(target=target)
     try:
         async with HttpClient(
-            concurrency=concurrency, per_host=2, timeout=timeout, verify_tls=verify_tls
+            concurrency=concurrency, per_host=2, timeout=timeout,
+            verify_tls=verify_tls, trust_env=trust_env,
         ) as client:
             ctx = await build_context(client, target)
             if "_error" in ctx.home_headers:
@@ -44,8 +46,25 @@ async def scan_target(
                 ):
                     on_found(result)
                 return result
+            if ctx.home_status >= 500:
+                # 5xx = 网关/代理错误页(如代理无法连到内网域名时返回 502),
+                # 服务实际未正常响应,不能视为可达
+                result.auth_status = AuthStatus.UNREACHABLE
+                result.error = f"HTTP {ctx.home_status} (gateway/proxy error page)"
+                result.evidence.append(f"homepage returned HTTP {ctx.home_status}")
+                result.reachable = False
+                result.details.append(TestDetail(
+                    name="连通性测试",
+                    description="请求目标首页,检查服务是否可达",
+                    target=target.url,
+                    request=f"GET {target.url}",
+                    response=f"HTTP {ctx.home_status}",
+                    result="服务返回 5xx 网关错误,判定为不可达(可能为代理/网关错误页)",
+                    vulnerable=False,
+                ))
+                return result
             fp = await fingerprint(ctx)
-            result.reachable = True   # 首页拿到 HTTP 响应 = 公网可达
+            result.reachable = True   # 首页正常 HTTP 响应(< 500)= 可达
             if fp is None:
                 # 通用 API 文档暴露探测 (Swagger/OpenAPI, Spring Boot Actuator)
                 from iec.plugins.apidoc import probe_api_docs
@@ -137,6 +156,7 @@ async def scan_all(
     concurrency: int = 20,
     timeout: float = 10.0,
     verify_tls: bool = True,
+    trust_env: bool = True,
     on_found: Callable[[ScanResult], None] | None = None,
 ) -> list[ScanResult]:
     sem = asyncio.Semaphore(concurrency)
@@ -148,6 +168,7 @@ async def scan_all(
                 concurrency=concurrency,
                 timeout=timeout,
                 verify_tls=verify_tls,
+                trust_env=trust_env,
                 on_found=on_found,
             )
 

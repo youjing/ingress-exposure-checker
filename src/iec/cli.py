@@ -56,6 +56,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--insecure-tls", action="store_true", help="Skip TLS certificate verification"
     )
+    p.add_argument(
+        "--direct", action="store_true",
+        help="Bypass system/env HTTP proxy and probe targets directly",
+    )
     return p
 
 
@@ -81,6 +85,7 @@ async def _run(args: argparse.Namespace) -> int:
         concurrency=args.concurrency,
         timeout=args.timeout,
         verify_tls=not args.insecure_tls,
+        trust_env=not args.direct,
         on_found=on_found,
     )
 
