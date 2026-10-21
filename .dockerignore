@@ -1,0 +1,15 @@
+.git
+.remember
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+examples/
+output/
+docs/
+tests/
+.github/
+Dockerfile
+.dockerignore
+scan.sh
+list-ingress.sh
