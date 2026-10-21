@@ -9,6 +9,7 @@ class AuthStatus(str, Enum):
     PROTECTED = "protected"
     BASIC_AUTH_PROTECTED = "basic_auth_protected"
     UNKNOWN = "unknown"
+    NOT_FOUND = "not_found"
     INCONCLUSIVE = "inconclusive"
     UNREACHABLE = "unreachable"
     ERROR = "error"
@@ -27,6 +28,7 @@ STATUS_SEVERITY: dict[AuthStatus, Severity] = {
     AuthStatus.PROTECTED: Severity.OK,
     AuthStatus.BASIC_AUTH_PROTECTED: Severity.OK,
     AuthStatus.UNKNOWN: Severity.INFO,
+    AuthStatus.NOT_FOUND: Severity.INFO,
     AuthStatus.INCONCLUSIVE: Severity.INFO,
     AuthStatus.UNREACHABLE: Severity.INFO,
     AuthStatus.ERROR: Severity.INFO,
@@ -75,6 +77,7 @@ STATUS_ZH: dict[AuthStatus, str] = {
     AuthStatus.PROTECTED: "正常：已有保护，默认凭据无效",
     AuthStatus.BASIC_AUTH_PROTECTED: "正常：启用 HTTP Basic 认证",
     AuthStatus.UNKNOWN: "未知：无法识别服务或证据不足",
+    AuthStatus.NOT_FOUND: "无服务：主机/网关可达,但该路径返回 404(无后端服务)",
     AuthStatus.INCONCLUSIVE: "无法判定：测试特征不可靠",
     AuthStatus.UNREACHABLE: "不可达：目标无法连接",
     AuthStatus.ERROR: "错误：扫描过程异常",
@@ -104,7 +107,7 @@ class ScanResult:
     evidence: list[str] = field(default_factory=list)
     details: list[TestDetail] = field(default_factory=list)
     error: str | None = None
-    reachable: bool = False   # 目标是否可达(从扫描器视角即公网可达)
+    reachable: bool = False   # 网络层是否可达(HTTP 有响应;5xx 网关错误页除外)
 
     @property
     def severity(self) -> Severity:

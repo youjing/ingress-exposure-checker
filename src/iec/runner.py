@@ -63,6 +63,22 @@ async def scan_target(
                     vulnerable=False,
                 ))
                 return result
+            if ctx.home_status == 404:
+                # 404 = 主机/网关可达,但该 ingress 路径没有后端服务
+                # (服务下线/路由未配置/路径有误),不构成暴露面
+                result.auth_status = AuthStatus.NOT_FOUND
+                result.evidence.append("homepage returned HTTP 404")
+                result.reachable = True
+                result.details.append(TestDetail(
+                    name="连通性测试",
+                    description="请求目标首页,检查服务是否可达",
+                    target=target.url,
+                    request=f"GET {target.url}",
+                    response="HTTP 404 (Not Found)",
+                    result="主机/网关可达,但该路径无后端服务(不构成暴露面),跳过漏洞检测",
+                    vulnerable=False,
+                ))
+                return result
             fp = await fingerprint(ctx)
             result.reachable = True   # 首页正常 HTTP 响应(< 500)= 可达
             if fp is None:
@@ -158,12 +174,13 @@ async def scan_all(
     verify_tls: bool = True,
     trust_env: bool = True,
     on_found: Callable[[ScanResult], None] | None = None,
+    on_done: Callable[[Target], None] | None = None,
 ) -> list[ScanResult]:
     sem = asyncio.Semaphore(concurrency)
 
     async def _one(t: Target) -> ScanResult:
         async with sem:
-            return await scan_target(
+            r = await scan_target(
                 t,
                 concurrency=concurrency,
                 timeout=timeout,
@@ -171,5 +188,11 @@ async def scan_all(
                 trust_env=trust_env,
                 on_found=on_found,
             )
+        if on_done:
+            try:
+                on_done(t)
+            except Exception:
+                pass
+        return r
 
     return await asyncio.gather(*(_one(t) for t in targets))

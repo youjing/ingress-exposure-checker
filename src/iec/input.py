@@ -20,7 +20,7 @@ def _normalize_url(raw: str) -> str:
 def parse_targets(path) -> list[Target]:
     path = Path(path)
     if not path.exists():
-        raise FileNotFoundError(f"input file not found: {path}")
+        raise FileNotFoundError(f"输入文件不存在: {path}\n请检查路径是否正确;可用 list-ingress.sh 从集群导出目标清单")
     content = path.read_text(encoding="utf-8")
     if _is_ingress_table(content):
         return _parse_ingress_table(content)

@@ -64,38 +64,60 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 async def _run(args: argparse.Namespace) -> int:
+    from rich.console import Console
+    from rich.progress import (BarColumn, MofNCompleteColumn, Progress,
+                               SpinnerColumn, TaskProgressColumn,
+                               TextColumn, TimeElapsedColumn)
+
     if args.url:
         from iec.input import _normalize_url
         targets = [Target(url=_normalize_url(args.url))]
-        print(f"Scanning single target: {targets[0].url}")
+        print(f"扫描单目标: {targets[0].url}")
     else:
         if not args.input:
             print("error: either a input file or --url is required", file=sys.stderr)
             return 3
         targets = parse_targets(Path(args.input))
-        print(f"Loaded {len(targets)} targets from {args.input}")
+        print(f"已加载 {len(targets)} 个目标 (来自 {args.input})")
 
     results: list = []
 
     def on_found(result) -> None:
         results.append(result)
 
-    scanned = await scan_all(
-        targets,
-        concurrency=args.concurrency,
-        timeout=args.timeout,
-        verify_tls=not args.insecure_tls,
-        trust_env=not args.direct,
-        on_found=on_found,
-    )
+    console = Console()
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task_id = progress.add_task("准备扫描...", total=len(targets))
+
+        def on_done(t) -> None:
+            progress.update(task_id, description=f"[dim]{t.url[:64]}[/dim]")
+            progress.advance(task_id)
+
+        scanned = await scan_all(
+            targets,
+            concurrency=args.concurrency,
+            timeout=args.timeout,
+            verify_tls=not args.insecure_tls,
+            trust_env=not args.direct,
+            on_found=on_found,
+            on_done=on_done,
+        )
 
     render_terminal_summary(scanned)
 
     if not args.no_report:
         Path(args.output_html).write_text(render_html(scanned), encoding="utf-8")
         Path(args.output_md).write_text(render_markdown(scanned), encoding="utf-8")
-        print(f"\nHTML report: {args.output_html}")
-        print(f"Markdown report: {args.output_md}")
+        print(f"\nHTML 报告: {args.output_html}")
+        print(f"Markdown 报告: {args.output_md}")
 
     critical = sum(1 for r in scanned if r.auth_status.value == "exposed_no_auth")
     high = sum(1 for r in scanned if r.auth_status.value == "exposed_default_creds")
@@ -105,5 +127,15 @@ async def _run(args: argparse.Namespace) -> int:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    exit_code = asyncio.run(_run(args))
+    try:
+        exit_code = asyncio.run(_run(args))
+    except FileNotFoundError as e:
+        print(f"\n[错误] {e}", file=sys.stderr)
+        sys.exit(3)
+    except ValueError as e:
+        print(f"\n[错误] 输入格式问题: {e}", file=sys.stderr)
+        sys.exit(3)
+    except KeyboardInterrupt:
+        print("\n已中断扫描", file=sys.stderr)
+        sys.exit(130)
     sys.exit(exit_code)

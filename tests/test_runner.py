@@ -83,3 +83,26 @@ async def test_scan_all_runs_multiple():
             assert all(r.middleware == "grafana" for r in results)
     finally:
         PLUGINS[:] = snapshot
+
+
+@pytest.mark.asyncio
+async def test_scan_target_404_no_service():
+    with respx.mock:
+        respx.get("http://gone.example.com/").mock(
+            return_value=httpx.Response(404, text="<html>404 page</html>"))
+        respx.get("http://gone.example.com/favicon.ico").mock(return_value=httpx.Response(404))
+        result = await scan_target(Target(url="http://gone.example.com/"))
+        assert result.auth_status == AuthStatus.NOT_FOUND
+        assert result.reachable is True
+        assert result.middleware is None
+
+
+@pytest.mark.asyncio
+async def test_scan_target_5xx_not_reachable():
+    with respx.mock:
+        respx.get("http://gwerr.example.com/").mock(
+            return_value=httpx.Response(502, text="Bad Gateway"))
+        respx.get("http://gwerr.example.com/favicon.ico").mock(return_value=httpx.Response(502))
+        result = await scan_target(Target(url="http://gwerr.example.com/"))
+        assert result.auth_status == AuthStatus.UNREACHABLE
+        assert result.reachable is False
