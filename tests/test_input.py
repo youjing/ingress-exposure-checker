@@ -35,12 +35,16 @@ class TestCsvInput:
         assert parse_targets(p)[0] == Target(url="http://a.com")
 
 class TestIngressTableInput:
+    @staticmethod
+    def _row(ns, name, host, path, ports):
+        return f"{ns:<25} {name:<40} {host:<30} {path:<60} {ports:<10}\n"
+
     INGRESS_TABLE = (
-        "NAMESPACE                 NAME                                     HOSTS                          PATHS                                                        PORTS\n"
-        "cog-demo                  nacos-test                               chart-example.local            /nacos                                                       80\n"
-        "<redacted>              audit-log-backend-ingress                <redacted-host>                /api/v1/audit                                                80, 443\n"
-        "<redacted>              platform-ui                              <redacted-host>          /                                                            80\n"
-        "<redacted>            grafana-ingress                          <redacted-host>                /grafana(/|$)(.*)                                            80, 443\n"
+        _row.__func__("NAMESPACE", "NAME", "HOSTS", "PATHS", "PORTS")
+        + _row.__func__("ns-demo", "nacos-test", "chart-example.local", "/nacos", "80")
+        + _row.__func__("team-a", "audit-backend", "api.example.com", "/api/v1/audit", "80, 443")
+        + _row.__func__("team-a", "platform-ui", "admin.platform.example.internal", "/", "80")
+        + _row.__func__("ns-observ", "grafana-ingress", "demo.example.com", "/grafana(/|$)(.*)", "80, 443")
     )
 
     def test_ingress_table_parses_targets(self, tmp_path):
@@ -51,14 +55,14 @@ class TestIngressTableInput:
     def test_ingress_table_extracts_namespace(self, tmp_path):
         p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
         targets = parse_targets(p)
-        assert targets[0].namespace == "cog-demo"
-        assert targets[1].namespace == "<redacted>"
+        assert targets[0].namespace == "ns-demo"
+        assert targets[1].namespace == "team-a"
 
     def test_ingress_table_https_on_443(self, tmp_path):
         p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
         targets = parse_targets(p)
         assert targets[1].url.startswith("https://")  # has 443
-        assert targets[1].url == "https://<redacted-host>/api/v1/audit"
+        assert targets[1].url == "https://api.example.com/api/v1/audit"
 
     def test_ingress_table_http_without_443(self, tmp_path):
         p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
@@ -69,7 +73,7 @@ class TestIngressTableInput:
     def test_ingress_table_empty_path_becomes_root(self, tmp_path):
         p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)
         targets = parse_targets(p)
-        assert targets[2].url == "http://<redacted-host>/"
+        assert targets[2].url == "http://admin.platform.example.internal/"
 
     def test_ingress_table_preserves_name(self, tmp_path):
         p = _write(tmp_path, "ingress.txt", self.INGRESS_TABLE)

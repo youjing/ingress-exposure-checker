@@ -9,12 +9,12 @@ from iec.plugins.nexus import NexusPlugin
 
 NEXUS_HTML = "<html><title>Nexus Repository Manager</title></html>"
 REPOS_JSON = (
-    '[{"name":"<redacted>","type":"hosted","url":"https://nx:8443/repository/<redacted>"},'
+    '[{"name":"company-release","type":"hosted","url":"https://nx:8443/repository/company-release"},'
     '{"name":"maven-public","type":"group","url":"https://nx:8443/repository/maven-public"}]'
 )
 SEARCH_JSON = (
-    '{"items":[{"name":"<redacted>","version":"1.1.0","assets":'
-    '[{"downloadUrl":"https://nx:8443/repository/<redacted>/com/<redacted>/sdk-1.1.0.jar"}]}]}'
+    '{"items":[{"name":"company-protocolsdk","version":"1.1.0","assets":'
+    '[{"downloadUrl":"https://nx:8443/repository/company-release/com/company/sdk-1.1.0.jar"}]}]}'
 )
 
 
@@ -36,7 +36,7 @@ async def test_nexus_anonymous_download_exposed():
                                         headers={"Content-Type": "application/json"}))
         # search 返回的 downloadUrl 指向 nx:8443 (内部地址),
         # 插件必须改写到目标 origin 后下载
-        respx.get(base + "/repository/<redacted>/com/<redacted>/sdk-1.1.0.jar").mock(
+        respx.get(base + "/repository/company-release/com/company/sdk-1.1.0.jar").mock(
             return_value=httpx.Response(200, content=b"\x00\x01binary-jar-bytes" * 100,
                                         headers={"Content-Type": "application/java-archive"}))
         async with HttpClient() as client:
@@ -113,7 +113,7 @@ async def test_nexus_empty_repo_list_protected():
 async def test_nexus_html_fallback_not_treated_as_json():
     """HTML 网关回退页不应被误判为仓库列表(防误报)。"""
     base = "https://gw.example.com/nexus"
-    tricky = ('<html><body>repositories <redacted> maven-public json</body></html>')
+    tricky = ('<html><body>repositories company-release maven-public json</body></html>')
     with respx.mock:
         respx.get(base).mock(return_value=httpx.Response(200, text=tricky))
         respx.get(base + "/favicon.ico").mock(return_value=httpx.Response(404))
