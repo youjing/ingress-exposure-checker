@@ -71,7 +71,8 @@ async def test_nexus_anonymous_disabled_then_creds():
 
 
 @pytest.mark.asyncio
-async def test_nexus_repos_visible_but_search_empty():
+async def test_nexus_repos_visible_but_download_unverified():
+    """仓库列表可见但搜索无结果/下载未验证成功 → 降级为 INCONCLUSIVE, 不报严重。"""
     base = "https://nexus3.example.com"
     with respx.mock:
         _mock_home(base)
@@ -84,8 +85,28 @@ async def test_nexus_repos_visible_but_search_empty():
         async with HttpClient() as client:
             ctx = await build_context(client, Target(url=base))
             result = await NexusPlugin().check_auth(ctx)
-            # 仓库列表匿名可见已是信息泄露
-            assert result.status == AuthStatus.EXPOSED_NO_AUTH
+            # 仓库列表匿名可见是事实, 但下载未验证 → 不定级, 不报严重
+            assert result.status == AuthStatus.INCONCLUSIVE
+
+
+@pytest.mark.asyncio
+async def test_nexus_empty_repo_list_protected():
+    """匿名配置开启但返回空列表(无任何仓库权限) → 不算发现, 走默认凭据测试。"""
+    base = "https://nexus-empty.example.com"
+    with respx.mock:
+        _mock_home(base)
+        respx.get(base + "/service/rest/v1/repositories").mock(
+            return_value=httpx.Response(200, text="[ ]",
+                                        headers={"Content-Type": "application/json"}))
+        respx.get(base + "/service/rest/v1/status").mock(
+            return_value=httpx.Response(401, text="unauthorized"))
+        async with HttpClient() as client:
+            ctx = await build_context(client, Target(url=base))
+            result = await NexusPlugin().check_auth(ctx)
+            assert result.status == AuthStatus.PROTECTED
+            empty_detail = [d for d in result.details
+                            if d.name == "匿名仓库列表测试" and "空列表" in d.response]
+            assert empty_detail and empty_detail[0].vulnerable is False
 
 
 @pytest.mark.asyncio

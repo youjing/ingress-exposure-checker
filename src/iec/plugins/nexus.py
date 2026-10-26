@@ -29,9 +29,10 @@ async def _list_repositories(ctx: ProbeContext) -> list[dict] | None:
     if resp.status_code != 200 or not _is_json(resp.text):
         return None
     try:
-        return resp.json()
+        data = resp.json()
     except ValueError:
         return None
+    return data if isinstance(data, list) else None
 
 
 async def _search_artifacts(ctx: ProbeContext, repository: str) -> list[dict]:
@@ -82,9 +83,9 @@ class NexusPlugin(MiddlewarePlugin):
     async def check_auth(self, ctx: ProbeContext):
         details: list[TestDetail] = []
 
-        # 1) 匿名仓库列表: 200+JSON = 匿名访问开启
+        # 1) 匿名仓库列表: 空列表 = 匿名无任何仓库权限(不算发现)
         repos = await _list_repositories(ctx)
-        if repos is not None:
+        if repos:  # 非空列表才可能构成暴露
             names = [r.get("name", "?") for r in repos]
             hosted = [r.get("name", "?") for r in repos if r.get("type") == "hosted"]
             details.append(TestDetail(
@@ -141,10 +142,15 @@ class NexusPlugin(MiddlewarePlugin):
 
             evidence = [f"nexus anonymous access enabled; repos: {', '.join(names[:5])}"]
             evidence.extend(evidence_parts)
-            return AuthCheckResult(status=AuthStatus.EXPOSED_NO_AUTH,
+            if evidence_parts:
+                # 实际下载验证成功 → 严重
+                return AuthCheckResult(status=AuthStatus.EXPOSED_NO_AUTH,
+                                       evidence=evidence, details=details)
+            # 仓库列表可见但制品下载未验证成功 → 不定级, 待人工确认
+            return AuthCheckResult(status=AuthStatus.INCONCLUSIVE,
                                    evidence=evidence, details=details)
 
-        # 3) 匿名关闭 → 默认凭据测试 (admin/admin123)
+        # 3) 匿名关闭或匿名无任何可见仓库 → 默认凭据测试 (admin/admin123)
         origin_probe = _origin_url(ctx, "/service/rest/v1/status")
         if repos is None:
             details.append(TestDetail(
@@ -154,6 +160,16 @@ class NexusPlugin(MiddlewarePlugin):
                 request="GET /service/rest/v1/repositories (无认证)",
                 response="HTTP 401/403 或请求失败",
                 result="匿名访问已关闭(已有保护)",
+                vulnerable=False,
+            ))
+        else:  # repos == [] : 匿名配置开启但无任何可见仓库
+            details.append(TestDetail(
+                name="匿名仓库列表测试",
+                description="不带凭据请求 Nexus REST API,检查匿名用户是否可浏览仓库",
+                target=_origin_url(ctx, "/service/rest/v1/repositories"),
+                request="GET /service/rest/v1/repositories (无认证)",
+                response="HTTP 200 - 返回空列表 (匿名角色无任何仓库查看权限)",
+                result="匿名无法访问任何仓库(已有保护)",
                 vulnerable=False,
             ))
         creds_result = await check_basic_auth(ctx, probe_path="/service/rest/v1/status",
