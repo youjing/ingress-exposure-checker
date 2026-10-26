@@ -60,6 +60,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--direct", action="store_true",
         help="Bypass system/env HTTP proxy and probe targets directly",
     )
+    p.add_argument(
+        "--slack-webhook", default=None, metavar="URL",
+        help="Post CRITICAL/HIGH findings to this Slack Incoming Webhook",
+    )
     return p
 
 
@@ -118,6 +122,17 @@ async def _run(args: argparse.Namespace) -> int:
         Path(args.output_md).write_text(render_markdown(scanned), encoding="utf-8")
         print(f"\nHTML 报告: {args.output_html}")
         print(f"Markdown 报告: {args.output_md}")
+
+    if args.slack_webhook:
+        from iec.report.slack import build_slack_payload, env_name_from_file, send_slack
+        env_name = (env_name_from_file(args.input)
+                    if args.input else f"single-{Target(url=args.url).url.split('//')[-1]}")
+        payload = build_slack_payload(scanned, env_name,
+                                      total_scanned=len(scanned),
+                                      report_path=args.output_html)
+        ok, msg = await send_slack(args.slack_webhook, payload)
+        mark = "✓" if ok else "✗"
+        print(f"Slack 告警: {mark} {msg}")
 
     critical = sum(1 for r in scanned if r.auth_status.value == "exposed_no_auth")
     high = sum(1 for r in scanned if r.auth_status.value == "exposed_default_creds")
