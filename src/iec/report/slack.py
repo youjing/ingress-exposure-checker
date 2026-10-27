@@ -112,3 +112,52 @@ async def send_slack(webhook_url: str, payload: dict) -> tuple[bool, str]:
     if resp.status_code == 200 and resp.text.strip() == "ok":
         return True, "已发送到 Slack"
     return False, f"Slack 返回 HTTP {resp.status_code}: {resp.text[:120]}"
+
+
+async def upload_file_to_slack(token: str, channel: str, filepath: str,
+                               comment: str) -> tuple[bool, str]:
+    """上传文件到 Slack 频道 (Web API files.uploadV2 三步流程)。
+
+    token: xoxb- Bot Token, 需 files:write 权限。
+    comment: 随文件发布的消息。
+    """
+    import json as _json
+    import os
+    from pathlib import Path
+
+    path = Path(filepath)
+    if not path.exists():
+        return False, f"报告文件不存在: {filepath}"
+    filename = path.name
+    size = os.path.getsize(filepath)
+    auth = {"Authorization": f"Bearer {token}"}
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            # 1) 申请上传地址
+            r1 = await client.post(
+                "https://slack.com/api/files.getUploadURLExternal",
+                headers=auth, data={"filename": filename, "length": size})
+            d1 = r1.json()
+            if not d1.get("ok"):
+                return False, f"getUploadURL 失败: {d1.get('error', r1.text[:80])}"
+
+            # 2) 上传文件内容
+            r2 = await client.post(d1["upload_url"],
+                                   files={"file": (filename, path.read_bytes())})
+            if r2.status_code != 200 or not r2.json().get("ok"):
+                return False, f"文件上传失败: HTTP {r2.status_code}"
+
+            # 3) 完成上传并发布到频道 (附评论)
+            r3 = await client.post(
+                "https://slack.com/api/files.completeUploadExternal",
+                headers=auth,
+                data={"files": _json.dumps([{"id": d1["file_id"], "title": filename}]),
+                      "channel_id": channel,
+                      "initial_comment": comment})
+            d3 = r3.json()
+            if not d3.get("ok"):
+                return False, f"completeUpload 失败: {d3.get('error', r3.text[:80])}"
+            return True, f"报告已上传到 Slack 频道 ({filename})"
+    except httpx.HTTPError as e:
+        return False, f"上传失败: {type(e).__name__}: {e}"

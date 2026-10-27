@@ -76,6 +76,23 @@ iec targets.txt --authorized --direct --insecure-tls
 常用参数: `--concurrency`（并发, 默认 20）、`--timeout`（超时, 默认 10s）、
 `--direct`（绕过系统代理）、`--insecure-tls`（跳过证书校验）、`--no-report`（仅终端输出）。
 
+### Slack 告警通知
+
+```bash
+# 告警卡片 (Incoming Webhook): 严重/高危发现推送到 Slack
+iec targets.txt --authorized --insecure-tls \
+    --slack-webhook "https://hooks.slack.com/services/T000/B000/XXXX"
+
+# 附加完整 HTML 报告文件 (Bot Token, 需 files:write 权限)
+iec targets.txt --authorized --insecure-tls \
+    --slack-webhook "https://hooks.slack.com/services/T000/B000/XXXX" \
+    --slack-token "xoxb-..." --slack-channel "C0123ABCDEF"
+```
+
+> 环境名自动取 `.ingress.txt` 文件名前缀; 仅发送严重/高危告警;
+> Incoming Webhook 只能发消息, 附加文件需 Bot Token (Slack API 限制)。
+> Webhook/Token 属敏感凭据, 仅通过命令行传入, 勿写入任何文件。
+
 ## 报告
 
 - 终端实时输出（rich, 含详细测试过程）

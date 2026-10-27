@@ -64,6 +64,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--slack-webhook", default=None, metavar="URL",
         help="Post CRITICAL/HIGH findings to this Slack Incoming Webhook",
     )
+    p.add_argument(
+        "--slack-token", default=None, metavar="XOXB",
+        help="Slack Bot Token (xoxb-, files:write) to upload the HTML report file",
+    )
+    p.add_argument(
+        "--slack-channel", default=None, metavar="CHANNEL_ID",
+        help="Slack channel ID (e.g. C0123ABCDEF) for the report upload",
+    )
     return p
 
 
@@ -133,6 +141,22 @@ async def _run(args: argparse.Namespace) -> int:
         ok, msg = await send_slack(args.slack_webhook, payload)
         mark = "✓" if ok else "✗"
         print(f"Slack 告警: {mark} {msg}")
+
+    if args.slack_token and args.slack_channel:
+        from iec.report.slack import env_name_from_file, upload_file_to_slack
+        env_name = (env_name_from_file(args.input)
+                    if args.input else "single-target")
+        from iec.models import Severity
+        c = sum(1 for r in scanned if r.severity == Severity.CRITICAL)
+        h = sum(1 for r in scanned if r.severity == Severity.HIGH)
+        comment = (f"📥 Ingress 暴露扫描完整报告 [{env_name}]\n"
+                   f"扫描目标: {len(scanned)} · 🔴 严重: {c} · 🟠 高危: {h}")
+        ok, msg = await upload_file_to_slack(args.slack_token, args.slack_channel,
+                                             args.output_html, comment)
+        mark = "✓" if ok else "✗"
+        print(f"Slack 报告上传: {mark} {msg}")
+    elif args.slack_token or args.slack_channel:
+        print("提示: --slack-token 与 --slack-channel 需同时提供才能上传报告", file=sys.stderr)
 
     critical = sum(1 for r in scanned if r.auth_status.value == "exposed_no_auth")
     high = sum(1 for r in scanned if r.auth_status.value == "exposed_default_creds")

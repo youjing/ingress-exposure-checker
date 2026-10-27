@@ -45,7 +45,7 @@ def sample_results():
 
 
 def test_env_name_from_ingress_file():
-    assert env_name_from_file("/x/y/services.cogiot.net.ingress.txt".replace("cogiot.net", "example.com")) == "services.example.com"
+    assert env_name_from_file("/x/y/services.example.com.ingress.txt") == "services.example.com"
     assert env_name_from_file("stage.ingress.txt") == "stage"
     assert env_name_from_file("targets.txt") == "targets"
 
@@ -106,3 +106,43 @@ async def test_send_slack_failure():
         ok, msg = await send_slack("https://hooks.slack.com/services/T000/B000/FAKE",
                                    {"text": "hi"})
         assert not ok and "400" in msg
+
+
+@pytest.mark.asyncio
+async def test_upload_file_to_slack_success(tmp_path):
+    from iec.report.slack import upload_file_to_slack
+    report = tmp_path / "report.html"
+    report.write_text("<html>demo report</html>", encoding="utf-8")
+    with respx.mock:
+        respx.post("https://slack.com/api/files.getUploadURLExternal").mock(
+            return_value=httpx.Response(200, json={
+                "ok": True, "upload_url": "https://files.slack.com/up/xyz",
+                "file_id": "F123"}))
+        respx.post("https://files.slack.com/up/xyz").mock(
+            return_value=httpx.Response(200, json={"ok": True}))
+        respx.post("https://slack.com/api/files.completeUploadExternal").mock(
+            return_value=httpx.Response(200, json={"ok": True, "file": {"id": "F123"}}))
+        ok, msg = await upload_file_to_slack(
+            "xoxb-fake-token", "C0123ABC", str(report), "demo comment")
+        assert ok and "report.html" in msg
+
+
+@pytest.mark.asyncio
+async def test_upload_file_to_slack_api_error(tmp_path):
+    from iec.report.slack import upload_file_to_slack
+    report = tmp_path / "report.html"
+    report.write_text("<html>x</html>", encoding="utf-8")
+    with respx.mock:
+        respx.post("https://slack.com/api/files.getUploadURLExternal").mock(
+            return_value=httpx.Response(200, json={"ok": False, "error": "not_authed"}))
+        ok, msg = await upload_file_to_slack(
+            "xoxb-fake-token", "C0123ABC", str(report), "c")
+        assert not ok and "not_authed" in msg
+
+
+@pytest.mark.asyncio
+async def test_upload_file_missing(tmp_path):
+    from iec.report.slack import upload_file_to_slack
+    ok, msg = await upload_file_to_slack(
+        "xoxb-fake-token", "C0123ABC", str(tmp_path / "nope.html"), "c")
+    assert not ok and "不存在" in msg
