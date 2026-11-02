@@ -119,6 +119,21 @@ kubectl apply -f k8s/iec-cronjob.yaml
 - ⚠️ 集群需能访问 `hooks.slack.com` / `slack.com`; 受限环境在容器 env 中配 `HTTPS_PROXY`
 - Job `backoffLimit: 0` — 失败不重试, 避免重复登录探测触发账号锁定
 
+### Prometheus Alertmanager
+
+```bash
+iec targets.txt --authorized --insecure-tls \
+    --alertmanager-url "https://alertmanager.example.com" \
+    --alertmanager-user "amuser" --alertmanager-password "ampass"
+```
+
+- 每条严重/高危漏洞一个独立告警 (`alertname=IngressExposure`,
+  labels 含 instance/namespace/middleware/env), 自动去重,
+  漏洞修复后下轮扫描不再发送, 告警自动 resolved
+- `endsAt` 默认 25h (适配每日定时扫描), `--alertmanager-endsat-hours` 可调
+- URL 支持反代前缀 (自动补 `/api/v2/alerts`); Basic Auth 可选
+- 凭据仅命令行传入, 勿写入任何文件
+
 ## 报告
 
 - 终端实时输出（rich, 含详细测试过程）

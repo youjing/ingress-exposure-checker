@@ -72,6 +72,22 @@ def build_parser() -> argparse.ArgumentParser:
         "--slack-channel", default=None, metavar="CHANNEL_ID",
         help="Slack channel ID (e.g. C0123ABCDEF) for the report upload",
     )
+    p.add_argument(
+        "--alertmanager-url", default=None, metavar="URL",
+        help="Alertmanager base URL to post CRITICAL/HIGH alerts (auto-appends /api/v2/alerts)",
+    )
+    p.add_argument(
+        "--alertmanager-user", default=None, metavar="USER",
+        help="Alertmanager Basic Auth username (optional)",
+    )
+    p.add_argument(
+        "--alertmanager-password", default=None, metavar="PASSWORD",
+        help="Alertmanager Basic Auth password (optional)",
+    )
+    p.add_argument(
+        "--alertmanager-endsat-hours", type=float, default=25.0,
+        help="Alert endsAt offset in hours (default 25, suits daily cron scans)",
+    )
     return p
 
 
@@ -157,6 +173,21 @@ async def _run(args: argparse.Namespace) -> int:
         print(f"Slack 报告上传: {mark} {msg}")
     elif args.slack_token or args.slack_channel:
         print("提示: --slack-token 与 --slack-channel 需同时提供才能上传报告", file=sys.stderr)
+
+    if args.alertmanager_url:
+        from iec.report.alertmanager import am_api_url, build_alerts, send_to_alertmanager
+        from iec.report.slack import env_name_from_file
+        env_name = (env_name_from_file(args.input)
+                    if args.input else "single-target")
+        alerts = build_alerts(scanned, env_name,
+                              ends_hours=args.alertmanager_endsat_hours)
+        url = am_api_url(args.alertmanager_url)
+        ok, msg = await send_to_alertmanager(url, alerts,
+                                             user=args.alertmanager_user,
+                                             password=args.alertmanager_password,
+                                             verify_tls=not args.insecure_tls)
+        mark = "✓" if ok else "✗"
+        print(f"Alertmanager: {mark} {msg}")
 
     critical = sum(1 for r in scanned if r.auth_status.value == "exposed_no_auth")
     high = sum(1 for r in scanned if r.auth_status.value == "exposed_default_creds")
