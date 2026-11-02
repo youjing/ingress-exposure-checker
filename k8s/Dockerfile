@@ -20,6 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 
 COPY list-ingress.sh /opt/iec/list-ingress.sh
 COPY k8s/run-scan.sh /usr/local/bin/run-scan.sh
-RUN chmod +x /opt/iec/list-ingress.sh /usr/local/bin/run-scan.sh
+RUN chmod +x /opt/iec/list-ingress.sh /usr/local/bin/run-scan.sh \
+    && useradd --create-home --uid 1000 iec
+
+# 数字 UID 便于 kubelet 校验 runAsNonRoot; 扫描产物写入 /tmp (world-writable)
+USER 1000
 
 ENTRYPOINT ["/usr/local/bin/run-scan.sh"]
