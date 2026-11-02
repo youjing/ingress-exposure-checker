@@ -30,6 +30,9 @@ restartPolicy: Never
 scan:
   envName: cluster-prod  # 显示在 Slack 卡片标题 / AM env label
   concurrency: 10
+  # true: 扫描完成即退出码 0 (发现漏洞只走通知, 不把 Job 标记为 Failed)。
+  # 集群 Job/CronJob 场景保持 true; CI 门禁场景可改 false (发现漏洞退出 1/2)
+  exitZero: true
   extraArgs: []          # 追加 iec 参数, 如 ["--timeout", "15"]
 
 # -- Slack 通知 (留空的参数不会传给 iec)

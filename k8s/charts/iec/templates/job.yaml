@@ -39,6 +39,10 @@ spec:
               value: {{ .Values.scan.envName | quote }}
             - name: IEC_CONCURRENCY
               value: {{ .Values.scan.concurrency | quote }}
+            {{- if .Values.scan.exitZero }}
+            - name: IEC_EXIT_ZERO
+              value: "1"
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

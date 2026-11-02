@@ -4,6 +4,7 @@
 #   IEC_ENV_NAME            环境名, 显示在 Slack 卡片标题 (默认 "cluster")
 #   IEC_CONCURRENCY         扫描并发 (默认 10)
 #   IEC_EXTRA_ARGS          追加 iec 参数 (空格分隔, 不支持带引号参数)
+#   IEC_EXIT_ZERO           设置任意值: 扫描完成即退出码 0 (发现漏洞不再标记 Job 失败)
 #   SLACK_WEBHOOK / SLACK_TOKEN / SLACK_CHANNEL
 #   ALERTMANAGER_URL / ALERTMANAGER_USER / ALERTMANAGER_PASSWORD / ALERTMANAGER_ENDSAT_HOURS
 set -eu
@@ -32,6 +33,7 @@ set -- "$TARGETS" --authorized --insecure-tls \
 [ -n "${ALERTMANAGER_USER:-}" ] && set -- "$@" --alertmanager-user "${ALERTMANAGER_USER}"
 [ -n "${ALERTMANAGER_PASSWORD:-}" ] && set -- "$@" --alertmanager-password "${ALERTMANAGER_PASSWORD}"
 [ -n "${ALERTMANAGER_ENDSAT_HOURS:-}" ] && set -- "$@" --alertmanager-endsat-hours "${ALERTMANAGER_ENDSAT_HOURS}"
+[ -n "${IEC_EXIT_ZERO:-}" ] && set -- "$@" --exit-zero
 [ -n "${IEC_EXTRA_ARGS:-}" ] && set -- "$@" ${IEC_EXTRA_ARGS}
 
 echo "[iec] 开始扫描..."

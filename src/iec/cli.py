@@ -73,6 +73,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Slack channel ID (e.g. C0123ABCDEF) for the report upload",
     )
     p.add_argument(
+        "--exit-zero", action="store_true",
+        help="Always exit 0 on completed scans (findings still reported/notifications sent); "
+             "useful for scheduled jobs where non-zero marks the job as failed",
+    )
+    p.add_argument(
         "--alertmanager-url", default=None, metavar="URL",
         help="Alertmanager base URL to post CRITICAL/HIGH alerts (auto-appends /api/v2/alerts)",
     )
@@ -191,6 +196,9 @@ async def _run(args: argparse.Namespace) -> int:
 
     critical = sum(1 for r in scanned if r.auth_status.value == "exposed_no_auth")
     high = sum(1 for r in scanned if r.auth_status.value == "exposed_default_creds")
+    if args.exit_zero:
+        print(f"扫描完成: 严重 {critical} / 高危 {high} (--exit-zero, 退出码 0)")
+        return 0
     return 2 if critical else (1 if high else 0)
 
 
