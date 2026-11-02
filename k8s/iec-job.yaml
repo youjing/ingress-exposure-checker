@@ -1,0 +1,31 @@
+# 一次性扫描 Job: kubectl apply -f iec-job.yaml && kubectl logs -f job/iec-scan
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iec-scan
+  namespace: default
+spec:
+  backoffLimit: 0          # 失败不重试 (避免重复登录探测)
+  template:
+    metadata:
+      labels:
+        app: iec-scan
+    spec:
+      serviceAccountName: iec-scanner
+      restartPolicy: Never
+      containers:
+        - name: iec
+          image: ghcr.io/youjing/iec:latest   # 或替换为内网镜像仓库地址
+          envFrom:
+            - secretRef:
+                name: iec-slack
+          env:
+            - name: IEC_ENV_NAME
+              value: "cluster-prod"            # 显示在 Slack 卡片标题
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

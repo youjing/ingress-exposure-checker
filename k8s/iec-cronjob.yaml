@@ -1,0 +1,37 @@
+# 定时扫描 CronJob: 每日 02:17 自动扫描并推送 Slack
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: iec-cron
+  namespace: default
+spec:
+  schedule: "17 2 * * *"
+  concurrencyPolicy: Forbid      # 上一次未跑完则跳过
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          labels:
+            app: iec-scan
+        spec:
+          serviceAccountName: iec-scanner
+          restartPolicy: Never
+          containers:
+            - name: iec
+              image: ghcr.io/youjing/iec:latest
+              envFrom:
+                - secretRef:
+                    name: iec-slack
+              env:
+                - name: IEC_ENV_NAME
+                  value: "cluster-prod"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi

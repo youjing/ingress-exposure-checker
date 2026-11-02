@@ -93,6 +93,32 @@ iec targets.txt --authorized --insecure-tls \
 > Incoming Webhook 只能发消息, 附加文件需 Bot Token (Slack API 限制)。
 > Webhook/Token 属敏感凭据, 仅通过命令行传入, 勿写入任何文件。
 
+## 在集群内定时扫描 (Kubernetes)
+
+镜像内含 iec + kubectl, 在集群内自动导出 Ingress 清单并扫描, 告警卡片与完整 HTML 报告直接推送 Slack。
+
+```bash
+# 1) 镜像: CI 推送到 ghcr.io/youjing/iec (main 分支自动构建),
+#    集群拉取受限时转推内网仓库:
+#    docker build -f k8s/Dockerfile -t <内网仓库>/iec:latest . && docker push ...
+
+# 2) RBAC (只读 Ingress) + Slack 凭据 Secret
+kubectl apply -f k8s/iec-rbac.yaml
+cp k8s/iec-slack-secret.example.yaml iec-slack.yaml   # 填入真实 webhook/token 后
+kubectl apply -f iec-slack.yaml
+
+# 3a) 一次性扫描
+kubectl apply -f k8s/iec-job.yaml && kubectl logs -f job/iec-scan
+
+# 3b) 每日定时扫描
+kubectl apply -f k8s/iec-cronjob.yaml
+```
+
+- `IEC_ENV_NAME` 决定 Slack 卡片标题中的环境名
+- ⚠️ 集群内扫描为**内网视角**(所有 ingress 均可达); 公网暴露评估请在 VPS 上用 Docker 跑
+- ⚠️ 集群需能访问 `hooks.slack.com` / `slack.com`; 受限环境在容器 env 中配 `HTTPS_PROXY`
+- Job `backoffLimit: 0` — 失败不重试, 避免重复登录探测触发账号锁定
+
 ## 报告
 
 - 终端实时输出（rich, 含详细测试过程）

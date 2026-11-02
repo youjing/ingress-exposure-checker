@@ -1,0 +1,28 @@
+# iec 扫描器 ServiceAccount: 只读集群 Ingress 权限
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: iec-scanner
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: iec-ingress-reader
+rules:
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: iec-ingress-reader-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: iec-ingress-reader
+subjects:
+  - kind: ServiceAccount
+    name: iec-scanner
+    namespace: default
