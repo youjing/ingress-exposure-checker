@@ -1,0 +1,22 @@
+# k8s 镜像专属忽略清单 (BuildKit 按 Dockerfile 路径查找 <name>.dockerignore)
+# 注意: 不要排除 list-ingress.sh / k8s/run-scan.sh, 镜像需要它们
+.git
+.remember
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+examples/
+output/
+docs/
+tests/
+.github/
+Dockerfile
+.dockerignore
+scan.sh
+k8s/Dockerfile
+k8s/Dockerfile.dockerignore
+k8s/iec-rbac.yaml
+k8s/iec-job.yaml
+k8s/iec-cronjob.yaml
+k8s/iec-slack-secret.example.yaml
