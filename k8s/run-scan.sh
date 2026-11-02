@@ -1,9 +1,11 @@
 #!/usr/bin/env sh
-# 在集群内执行: 导出 Ingress 清单 -> iec 扫描 -> Slack 告警/报告上传
-# 所需环境变量 (Slack 三项可选, 经 k8s Secret 注入):
-#   IEC_ENV_NAME    环境名, 显示在 Slack 卡片标题 (默认 "cluster")
-#   IEC_CONCURRENCY 扫描并发 (默认 10)
+# 在集群内执行: 导出 Ingress 清单 -> iec 扫描 -> Slack 告警/报告上传 -> Alertmanager 推送
+# 所需环境变量 (Slack/Alertmanager 凭据可选, 经 k8s Secret 注入):
+#   IEC_ENV_NAME            环境名, 显示在 Slack 卡片标题 (默认 "cluster")
+#   IEC_CONCURRENCY         扫描并发 (默认 10)
+#   IEC_EXTRA_ARGS          追加 iec 参数 (空格分隔, 不支持带引号参数)
 #   SLACK_WEBHOOK / SLACK_TOKEN / SLACK_CHANNEL
+#   ALERTMANAGER_URL / ALERTMANAGER_USER / ALERTMANAGER_PASSWORD / ALERTMANAGER_ENDSAT_HOURS
 set -eu
 
 ENV_NAME="${IEC_ENV_NAME:-cluster}"
@@ -26,6 +28,11 @@ set -- "$TARGETS" --authorized --insecure-tls \
 [ -n "${SLACK_WEBHOOK:-}" ] && set -- "$@" --slack-webhook "${SLACK_WEBHOOK}"
 [ -n "${SLACK_TOKEN:-}" ]   && set -- "$@" --slack-token "${SLACK_TOKEN}"
 [ -n "${SLACK_CHANNEL:-}" ] && set -- "$@" --slack-channel "${SLACK_CHANNEL}"
+[ -n "${ALERTMANAGER_URL:-}" ] && set -- "$@" --alertmanager-url "${ALERTMANAGER_URL}"
+[ -n "${ALERTMANAGER_USER:-}" ] && set -- "$@" --alertmanager-user "${ALERTMANAGER_USER}"
+[ -n "${ALERTMANAGER_PASSWORD:-}" ] && set -- "$@" --alertmanager-password "${ALERTMANAGER_PASSWORD}"
+[ -n "${ALERTMANAGER_ENDSAT_HOURS:-}" ] && set -- "$@" --alertmanager-endsat-hours "${ALERTMANAGER_ENDSAT_HOURS}"
+[ -n "${IEC_EXTRA_ARGS:-}" ] && set -- "$@" ${IEC_EXTRA_ARGS}
 
 echo "[iec] 开始扫描..."
 exec iec "$@"

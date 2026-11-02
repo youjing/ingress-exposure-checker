@@ -1,0 +1,80 @@
+# 默认值。可用 `helm show values charts/iec` 查看; 凭据类参数仅经 Secret 注入。
+
+# -- 部署模式: cronjob (定时扫描) 或 job (一次性扫描)
+mode: cronjob
+
+image:
+  repository: ghcr.io/youjing/iec
+  tag: ""                # 空则使用 .Chart.AppVersion; 建议 pin 具体版本
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []     # 私有仓库示例: [{name: regcred}]
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- RBAC (ServiceAccount + 只读 Ingress ClusterRole)
+rbac:
+  create: true
+
+# -- CronJob 调度 (mode=cronjob 时生效)
+schedule: "17 2 * * *"   # 每日 02:17; 避开整点减少 API 峰值
+concurrencyPolicy: Forbid
+successfulJobsHistoryLimit: 3
+failedJobsHistoryLimit: 3
+# -- Job 重试次数 (mode=job 时生效)。保持 0: 失败重试会重复登录探测, 可能触发账号锁定
+backoffLimit: 0
+restartPolicy: Never
+
+# -- 扫描配置
+scan:
+  envName: cluster-prod  # 显示在 Slack 卡片标题 / AM env label
+  concurrency: 10
+  extraArgs: []          # 追加 iec 参数, 如 ["--timeout", "15"]
+
+# -- Slack 通知 (留空的参数不会传给 iec)
+slack:
+  webhook: ""            # Incoming Webhook: 告警卡片
+  token: ""              # Bot Token (xoxb-, files:write): 上传完整 HTML 报告
+  channel: ""            # 频道 ID (C 开头)
+
+# -- Prometheus Alertmanager (Basic Auth 可选, 无密码则留空)
+alertmanager:
+  url: ""                # base URL, 自动补 /api/v2/alerts; 支持反代前缀
+  user: ""
+  password: ""
+  endsAtHours: 25        # endsAt 偏移, 适配每日扫描; 修复后自动 resolved
+
+# -- 凭据 Secret
+# existingSecret: 引用已有 Secret (需含上述全部非空 key: SLACK_WEBHOOK /
+# SLACK_TOKEN / SLACK_CHANNEL / ALERTMANAGER_URL / ALERTMANAGER_USER /
+# ALERTMANAGER_PASSWORD); 设置后 chart 不再创建 Secret
+existingSecret: ""
+secret:
+  create: true           # existingSecret 为空且有凭据值时自动创建
+
+# -- 资源与调度
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+podSecurityContext: {}
+securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# -- 额外环境变量 (如出网代理)
+# extraEnv:
+#   - name: HTTPS_PROXY
+#     value: "http://proxy:3128"
+extraEnv: []

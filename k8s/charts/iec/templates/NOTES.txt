@@ -1,0 +1,21 @@
+{{- $fullname := include "iec.fullname" . }}
+{{- if eq .Values.mode "cronjob" }}
+Ingress 暴露扫描已部署为 CronJob。
+
+  查看调度:     kubectl get cronjob {{ $fullname }} -n {{ .Release.Namespace }}
+  立即触发一次:  kubectl create job --from=cronjob/{{ $fullname }} {{ $fullname }}-manual -n {{ .Release.Namespace }}
+  查看日志:     kubectl logs -f job/{{ $fullname }}-manual -n {{ .Release.Namespace }}
+{{- else }}
+一次性扫描 Job 已部署。
+
+  查看状态:     kubectl get job {{ $fullname }} -n {{ .Release.Namespace }}
+  查看日志:     kubectl logs -f job/{{ $fullname }} -n {{ .Release.Namespace }}
+{{- end }}
+
+{{- if not (or .Values.existingSecret (and .Values.secret.create (eq (include "iec.hasCredentials" .) "true"))) }}
+⚠️  未配置任何通知渠道: 扫描结果仅输出到 Pod 日志。
+    配置 --set slack.webhook=... / --set alertmanager.url=... 启用告警推送。
+{{- end }}
+{{- if and .Values.existingSecret }}
+提示: 使用已有 Secret "{{ .Values.existingSecret }}", 请确认包含所需的 SLACK_*/ALERTMANAGER_* 键。
+{{- end }}

@@ -49,6 +49,33 @@ jobs:
         with:
           files: dist/*
 
+  helm:
+    # 校验 Helm chart: lint + 渲染 (默认值 / job 模式 / 凭据注入)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.17.2
+
+      - name: Lint
+        run: helm lint k8s/charts/iec
+
+      - name: Template (default cronjob)
+        run: helm template iec k8s/charts/iec > /dev/null
+
+      - name: Template (job mode)
+        run: helm template iec k8s/charts/iec --set mode=job > /dev/null
+
+      - name: Template (with credentials)
+        run: |
+          helm template iec k8s/charts/iec \
+            --set slack.webhook="https://hooks.slack.com/services/T000/B000/X" \
+            --set alertmanager.url="https://alertmanager.example.com" \
+            --set alertmanager.password="dummy" | grep -q "kind: Secret"
+
   docker:
     # 构建集群扫描镜像 (iec + kubectl) 并推送到 GHCR
     # 集群拉取受限时可改为内网仓库: docker tag + push

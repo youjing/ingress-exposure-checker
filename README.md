@@ -97,21 +97,48 @@ iec targets.txt --authorized --insecure-tls \
 
 镜像内含 iec + kubectl, 在集群内自动导出 Ingress 清单并扫描, 告警卡片与完整 HTML 报告直接推送 Slack。
 
+### 方式一: Helm (推荐)
+
+```bash
+# 安装/升级 (凭据经 --set 传入, 由 chart 创建 Secret; 也可用 existingSecret 引用已有 Secret)
+helm upgrade --install iec k8s/charts/iec \
+  --namespace security --create-namespace \
+  --set image.repository=ghcr.io/youjing/iec --set image.tag=latest \
+  --set scan.envName=cluster-prod \
+  --set schedule="17 2 * * *" \
+  --set slack.webhook="https://hooks.slack.com/services/T000/B000/XXXX" \
+  --set slack.token="xoxb-..." --set slack.channel="C0123ABCDEF" \
+  --set alertmanager.url="https://alertmanager.example.com" \
+  --set alertmanager.user="amuser" --set alertmanager.password="ampass"
+
+# 一次性扫描 (调试用)
+helm upgrade --install iec-test k8s/charts/iec --set mode=job ...
+
+# 卸载
+helm uninstall iec -n security
+```
+
+主要 values: `mode`(cronjob/job)、`schedule`、`image`、`scan.envName`、
+`slack.*`、`alertmanager.*`、`existingSecret`(引用已有 Secret)、
+`rbac.create`、`resources`、`extraEnv`(如出网代理)。完整清单见 `k8s/charts/iec/values.yaml`。
+
+### 方式二: 原始 YAML
+
 ```bash
 # 1) 镜像: CI 推送到 ghcr.io/youjing/iec (main 分支自动构建),
 #    集群拉取受限时转推内网仓库:
 #    docker build -f k8s/Dockerfile -t <内网仓库>/iec:latest . && docker push ...
 
 # 2) RBAC (只读 Ingress) + Slack 凭据 Secret
-kubectl apply -f k8s/iec-rbac.yaml
-cp k8s/iec-slack-secret.example.yaml iec-slack.yaml   # 填入真实 webhook/token 后
-kubectl apply -f iec-slack.yaml
+kubectl apply -f k8s/yaml/iec-rbac.yaml
+cp k8s/yaml/iec-slack-secret.example.yaml k8s/yaml/iec-slack.yaml   # 填入真实 webhook/token 后
+kubectl apply -f k8s/yaml/iec-slack.yaml
 
 # 3a) 一次性扫描
-kubectl apply -f k8s/iec-job.yaml && kubectl logs -f job/iec-scan
+kubectl apply -f k8s/yaml/iec-job.yaml && kubectl logs -f job/iec-scan
 
 # 3b) 每日定时扫描
-kubectl apply -f k8s/iec-cronjob.yaml
+kubectl apply -f k8s/yaml/iec-cronjob.yaml
 ```
 
 - `IEC_ENV_NAME` 决定 Slack 卡片标题中的环境名

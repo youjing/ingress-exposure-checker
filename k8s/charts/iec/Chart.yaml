@@ -1,0 +1,15 @@
+apiVersion: v2
+name: iec
+description: ingress-exposure-checker — 扫描集群 Ingress 暴露面, 检测无鉴权与默认凭据漏洞, 告警推送 Slack/Alertmanager
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/youjing/ingress-exposure-checker
+keywords:
+  - security
+  - kubernetes
+  - ingress
+  - alertmanager
+  - slack
+maintainers:
+  - name: youjing
