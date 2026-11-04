@@ -32,10 +32,10 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/* 凭据中至少一项非空 (用于决定是否创建 Secret / 注入 envFrom) */}}
+{{/* 注意: 动作必须单行 — 旧版 Helm (Go 1.15 text/template) 不支持跨行动作 */}}
 {{- define "iec.hasCredentials" -}}
 {{- $v := .Values -}}
-{{- if or $v.slack.webhook $v.slack.token $v.slack.channel
-           $v.alertmanager.url $v.alertmanager.user $v.alertmanager.password -}}
+{{- if or $v.slack.webhook $v.slack.token $v.slack.channel $v.alertmanager.url $v.alertmanager.user $v.alertmanager.password -}}
 true
 {{- else -}}
 false

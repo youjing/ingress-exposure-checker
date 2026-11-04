@@ -1,5 +1,6 @@
 {{- if eq .Values.mode "cronjob" }}
-apiVersion: batch/v1
+{{/* CronJob API 版本自动探测: K8s >= 1.21 为 batch/v1, 旧集群 (< 1.21) 回退 batch/v1beta1 */}}
+apiVersion: {{ if .Capabilities.APIVersions.Has "batch/v1/CronJob" }}batch/v1{{ else }}batch/v1beta1{{ end }}
 kind: CronJob
 metadata:
   name: {{ include "iec.fullname" . }}
